@@ -16,7 +16,20 @@ ldflags = cppflags = nil
 
 if RbConfig::CONFIG["host_os"] =~ /darwin/
   begin
-    brew_prefix = `brew --prefix icu4c`.chomp
+    # Find the actual installed icu4c version
+    # Get all installed icu4c versions (including versioned ones like icu4c@77, icu4c@78)
+    installed_icus = `brew list --formula`.split("\n").select { |formula| formula.start_with?('icu4c') }
+
+    if installed_icus.any?
+      # Sort to get the latest version (icu4c@78 > icu4c@77 > icu4c)
+      # Versioned packages will sort after the base package due to '@' character
+      installed_icu = installed_icus.sort.last
+      brew_prefix = `brew --prefix #{installed_icu}`.chomp
+    else
+      # Fallback to default icu4c if no versioned package found
+      brew_prefix = `brew --prefix icu4c`.chomp
+    end
+
     ldflags   = "#{brew_prefix}/lib"
     cppflags  = "#{brew_prefix}/include"
     pkg_conf  = "#{brew_prefix}/lib/pkgconfig"
